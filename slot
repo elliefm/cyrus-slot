@@ -78,10 +78,34 @@ sub slots_from_string {
     return if $slot_str !~ m/^[\d,-]+$/;
 
     my @ranges = split /\,/, $slot_str;
+    return if not scalar @ranges;
 
-    my @slots = map {
-	split /-/, $_;
-    } @ranges;
+    my @slots;
+
+    foreach my $range (@ranges) {
+	my ($start, $end, $junk) = split /-/, $range;
+
+	if (defined $junk) {
+	    print STDERR "invalid range: $range\n";
+	    return;
+	}
+	elsif (not $start) {
+	    print STDERR "invalid range: $range\n";
+	    return;
+	}
+	elsif (not $end) {
+	    push @slots, $start;
+	}
+	else {
+	    if ($start < $end) {
+		push @slots, $start .. $end;
+	    }
+	    else {
+		print STDERR "invalid range: $range\n";
+		return;
+	    }
+	}
+    }
 
     return sort uniq @slots;
 }
