@@ -3,4 +3,118 @@
 use warnings;
 use strict;
 
+use List::MoreUtils qw(uniq);
+use POSIX ();
 
+sub usage;
+sub slots_from_string;
+sub become_cyrus;
+
+my $SLOT_PATH = '/cyrus/slot';
+
+my %CMD_REFS = (
+    'init' => \&cmd_init,
+);
+
+my @saved_argv = @ARGV;
+
+# check for valid slots
+my @slots = slots_from_string(shift @ARGV);
+exit usage if not scalar @slots;
+
+# check for valid commands
+my @commands = @ARGV;
+exit usage if not scalar @commands;
+
+my @bad_commands = grep {
+    not exists $CMD_REFS{$_};
+} @commands;
+
+if (@bad_commands) {
+    print STDERR 'error: unrecognised command';
+    print STDERR 's' if scalar @bad_commands > 1;
+    print STDERR ': ', join(', ', @bad_commands);
+    print STDERR "\n";
+
+    exit usage;
+}
+
+# become cyrus user
+become_cyrus($0, @saved_argv);
+
+# check that slot path exists and is valid
+die "not a directory: '$SLOT_PATH'" if not -d $SLOT_PATH;
+die "directory not readable: '$SLOT_PATH'" if not -r $SLOT_PATH;
+die "directory not writeable: '$SLOT_PATH'" if not -w $SLOT_PATH;
+die "directory not executable: '$SLOT_PATH'" if not -x $SLOT_PATH;
+die "directory not owned by cyrus: '$SLOT_PATH'" if not -o $SLOT_PATH;
+
+# run commands
+foreach my $slot (@slots) {
+    foreach my $command (@commands) {
+	$CMD_REFS{$command}->($command, $slot);
+    }
+}
+
+exit 0;
+
+#############################################################
+
+sub usage {
+    my ($code) = @_;
+    $code = $code || 1;
+
+    print STDERR << "JHLBGK";
+usage: $0 slots command [command ...]
+
+JHLBGK
+
+    return $code;
+}
+
+sub slots_from_string {
+    my ($slot_str) = @_;
+
+    return if $slot_str !~ m/^[\d,-]+$/;
+
+    my @ranges = split /\,/, $slot_str;
+
+    my @slots = map {
+	split /-/, $_;
+    } @ranges;
+
+    return sort uniq @slots;
+}
+
+sub become_cyrus {
+    my ($zero, @args) = @_;
+
+    my $cyrus = 'cyrus';
+    my $pw = getpwnam $cyrus or die "no user named '$cyrus'";
+
+    my $uid = POSIX::getuid();
+
+    return if ($uid == $pw->uid); # already cyrus user
+
+    if ($uid == 0) {
+        setgid($pw->gid)
+            or die "cannot setgid to group $pw->gid: $!";
+        setuid($pw->uid)
+            or die "cannot setuid to group $pw->uid: $!";
+    }
+    else {
+        my @cmd = ( 'sudo', '-u', $cyrus, $zero, @args );
+        exec {'sudo'} @cmd;
+	die "sudo -u $cyrus failed: $?";
+    }
+}
+
+############################################
+
+sub cmd_init {
+    my ($command, $slot) = @_;
+
+    if (not mkdir "$SLOT_PATH/$slot", 0770) {
+	print STDERR "error: $command slot $slot failed: $!\n";
+    }
+}
