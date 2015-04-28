@@ -94,7 +94,7 @@ sub become_cyrus {
 
     my $uid = POSIX::getuid();
 
-    return if ($uid == $pw->uid); # already cyrus user
+    return if ($uid == $pw); # already cyrus user
 
     if ($uid == 0) {
         setgid($pw->gid)
