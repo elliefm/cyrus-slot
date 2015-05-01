@@ -25,6 +25,8 @@ my %CMD_REFS = (
     'build' => \&cmd_build,
     'check' => \&cmd_check,
     'install' => \&cmd_install,
+    
+    'fullbuild' => \&cmd_fullbuild,
 );
 
 my @saved_argv = @ARGV;
@@ -319,4 +321,15 @@ sub cmd_install {
     require_slot($slot);
     require_slot_config($slot);
     run qw( make install );
+}
+
+sub cmd_fullbuild {
+    my ($command, $slot, $force) = @_;
+
+    # make configure.ac look newer than anything else
+    utime(undef, undef, "configure.ac");
+
+    cmd_configure($command, $slot, $force);
+    cmd_build($command, $slot, $force);
+    cmd_check($command, $slot, $force);
 }
