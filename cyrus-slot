@@ -3,6 +3,8 @@
 use warnings;
 use strict;
 
+use File::Find;
+use File::Path;
 use List::MoreUtils qw(uniq);
 use POSIX ();
 
@@ -11,9 +13,11 @@ sub slots_from_string;
 sub become_cyrus;
 
 my $SLOT_PATH = '/cyrus/slot';
+my $SLOT_DEFAULTS = "$SLOT_PATH/defaults";
 
 my %CMD_REFS = (
     'init' => \&cmd_init,
+    'force-init' => \&cmd_init,
 );
 
 my @saved_argv = @ARGV;
@@ -50,9 +54,13 @@ die "directory not executable: '$SLOT_PATH'" if not -x $SLOT_PATH;
 die "directory not owned by cyrus: '$SLOT_PATH'" if not -o $SLOT_PATH;
 
 # run commands
+my $g_current_slot;
+
 foreach my $slot (@slots) {
+    $g_current_slot = $slot;
     foreach my $command (@commands) {
-	$CMD_REFS{$command}->($command, $slot);
+	my $force = $command =~ m/^force-/;
+	$CMD_REFS{$command}->($command, $slot, $force);
     }
 }
 
@@ -133,12 +141,55 @@ sub become_cyrus {
     }
 }
 
+sub install_defaults_cb {
+    # skip the entry for the SLOT_DEFAULTS directory itself
+    return if $File::Find::name eq $SLOT_DEFAULTS;
+
+    if (-d $File::Find::name) {
+	my $dir = substr $File::Find::name, 1 + length $SLOT_DEFAULTS;
+	$dir = "$SLOT_PATH/$g_current_slot/$dir";
+
+	if (not -d $dir and not mkdir $dir, 0770) {
+	    print STDERR "error: unable to create directory $dir: $!\n";
+	    return;
+	}
+    }
+    else {
+	my $file = substr $File::Find::name, 1 + length $SLOT_DEFAULTS;
+	$file = "$SLOT_PATH/$g_current_slot/$file";
+
+	# FIXME some sort of error reporting
+	open my $in, '<', $File::Find::name;
+	open my $out, '>', $file;
+
+	while (<$in>) {
+	    s/%SLOT_PATH%/$SLOT_PATH/g;
+	    s/%SLOT%/$g_current_slot/g;
+	    print $out $_;
+	}
+
+	close $out;
+	close $in;
+    }
+}
+
 ############################################
 
 sub cmd_init {
-    my ($command, $slot) = @_;
+    my ($command, $slot, $force) = @_;
 
-    if (not mkdir "$SLOT_PATH/$slot", 0770) {
+    if (-d "$SLOT_PATH/$slot") {
+	if (not $force) {
+	    print STDERR "error: $command slot $slot: already initialised\n";
+	    return;
+	}
+    }
+    elsif (not mkdir "$SLOT_PATH/$slot", 0770) {
 	print STDERR "error: $command slot $slot failed: $!\n";
+	return;
+    }
+
+    if (-d "$SLOT_DEFAULTS") {
+	find(\&install_defaults_cb, $SLOT_DEFAULTS);
     }
 }
