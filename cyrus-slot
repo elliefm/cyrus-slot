@@ -3,8 +3,10 @@
 use warnings;
 use strict;
 
+use Cwd;
 use File::Find;
 use File::Path;
+use IPC::System::Simple qw(run);
 use List::MoreUtils qw(uniq);
 use POSIX ();
 
@@ -18,6 +20,8 @@ my $SLOT_DEFAULTS = "$SLOT_PATH/defaults";
 my %CMD_REFS = (
     'init' => \&cmd_init,
     'force-init' => \&cmd_init,
+
+    'configure' => \&cmd_configure,
 );
 
 my @saved_argv = @ARGV;
@@ -173,6 +177,26 @@ sub install_defaults_cb {
     }
 }
 
+sub newer_file {
+    my @files = @_;
+
+    my $newest_mtime = 0;
+    my $newest_file;
+
+    foreach my $file (@files) {
+	next if not -e $file;
+
+	my $mtime = (stat($file))[9];
+
+	if ($mtime > $newest_mtime) {
+	    $newest_mtime = $mtime;
+	    $newest_file = $file;
+	}
+    }
+
+    return $newest_file;
+}
+
 ############################################
 
 sub cmd_init {
@@ -192,4 +216,48 @@ sub cmd_init {
     if (-d "$SLOT_DEFAULTS") {
 	find(\&install_defaults_cb, $SLOT_DEFAULTS);
     }
+}
+
+sub cmd_configure {
+    my ($command, $slot, $force) = @_;
+
+    # sanity check
+    if (getcwd !~ m/cyrus-imapd$/
+	or not -e 'configure.ac'
+	or not -e 'Makefile.am'
+    ) {
+	print STDERR "error: $command: current directory doesn't look like a cyrus source tree\n";
+	return;
+    }
+    
+    # if configure doesn't exist or is older than configure.ac, autoreconf
+    if ("configure.ac" eq newer_file "configure", "configure.ac") {
+	print STDERR "configure doesn't exist or is stale, rebuilding\n";
+	run qw( autoreconf -i -s );
+    }
+
+    # run configure
+    my $cflags = '-g -O0 -Wall -Wextra -Werror';
+    my @configure_args = qw(
+	--enable-silent-rules
+	--enable-coverage
+	--enable-http
+	--enable-unit-tests
+	--enable-replication
+	--with-openssl=yes
+	--enable-nntp
+	--enable-murder
+	--enable-idled
+    );
+
+    run "./configure",
+	"CFLAGS=$cflags",
+	"--prefix=$SLOT_PATH/$slot/usr/cyrus",
+	"--sysconfdir=$SLOT_PATH/$slot/etc",
+	@configure_args;
+
+    # update .slot file
+    open my $f, '>', '.slot';
+    print $f "$slot\n";
+    close $f;
 }
