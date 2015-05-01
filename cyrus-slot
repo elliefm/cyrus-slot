@@ -22,6 +22,7 @@ my %CMD_REFS = (
     'force-init' => \&cmd_init,
 
     'configure' => \&cmd_configure,
+    'build' => \&cmd_build,
 );
 
 my @saved_argv = @ARGV;
@@ -260,4 +261,31 @@ sub cmd_configure {
     open my $f, '>', '.slot';
     print $f "$slot\n";
     close $f;
+}
+
+sub cmd_build {
+    my ($command, $slot, $force) = @_;
+
+    # check that we're configured for the correct slot
+    if (newer_file(".slot", "Makefile", "configure") ne ".slot") {
+	# missing or stale .slot file
+	print STDERR "error: $command slot $slot: not configured for this slot\n";
+	return;
+    }
+
+    my $dot_slot = do {
+	local $/ = undef;
+	open my $f, '<', '.slot' or die ".slot: $!";
+	<$f>;
+    };
+    chomp $dot_slot;
+
+    if ($dot_slot ne $slot) {
+	# wrong .slot file
+	print STDERR "error: $command slot $slot: configured for wrong slot\n";
+	return;
+    }
+
+    run qw( make lex-fix );
+    run qw( make -j 16 );
 }
