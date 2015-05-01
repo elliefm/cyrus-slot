@@ -56,11 +56,11 @@ if (@bad_commands) {
 become_cyrus($0, @saved_argv);
 
 # check that slot path exists and is valid
-die "not a directory: '$SLOT_PATH'" if not -d $SLOT_PATH;
-die "directory not readable: '$SLOT_PATH'" if not -r $SLOT_PATH;
-die "directory not writeable: '$SLOT_PATH'" if not -w $SLOT_PATH;
-die "directory not executable: '$SLOT_PATH'" if not -x $SLOT_PATH;
-die "directory not owned by cyrus: '$SLOT_PATH'" if not -o $SLOT_PATH;
+die "not a directory: '$SLOT_PATH'\n" if not -d $SLOT_PATH;
+die "directory not readable: '$SLOT_PATH'\n" if not -r $SLOT_PATH;
+die "directory not writeable: '$SLOT_PATH'\n" if not -w $SLOT_PATH;
+die "directory not executable: '$SLOT_PATH'\n" if not -x $SLOT_PATH;
+die "directory not owned by cyrus: '$SLOT_PATH'\n" if not -o $SLOT_PATH;
 
 # run commands
 my $g_current_slot;
@@ -138,7 +138,7 @@ sub become_cyrus {
     my ($zero, @args) = @_;
 
     my $cyrus = 'cyrus';
-    my $pw = getpwnam $cyrus or die "no user named '$cyrus'";
+    my $pw = getpwnam $cyrus or die "no user named '$cyrus'\n";
 
     my $uid = POSIX::getuid();
 
@@ -245,7 +245,7 @@ sub cmd_init {
 
     if (-d "$SLOT_PATH/$slot") {
 	if (not $force) {
-	    die "already initialised";
+	    die "already initialised\n";
 	}
     }
     elsif (not mkdir "$SLOT_PATH/$slot", 0770) {
@@ -265,7 +265,7 @@ sub cmd_configure {
 	or not -e 'configure.ac'
 	or not -e 'Makefile.am'
     ) {
-	die "current directory doesn't look like a cyrus source tree";
+	die "current directory doesn't look like a cyrus source tree\n";
     }
     
     # if configure doesn't exist or is older than configure.ac, autoreconf
