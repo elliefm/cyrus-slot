@@ -23,6 +23,7 @@ my %CMD_REFS = (
 
     'configure' => \&cmd_configure,
     'build' => \&cmd_build,
+    'check' => \&cmd_check,
 );
 
 my @saved_argv = @ARGV;
@@ -288,4 +289,10 @@ sub cmd_build {
 
     run qw( make lex-fix );
     run qw( make -j 16 );
+}
+
+sub cmd_check {
+    my ($command, $slot, $force) = @_;
+
+    run qw( make check );
 }
