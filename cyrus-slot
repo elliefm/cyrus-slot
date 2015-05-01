@@ -27,6 +27,8 @@ my %CMD_REFS = (
     'install' => \&cmd_install,
     
     'fullbuild' => \&cmd_fullbuild,
+
+    'start' => \&cmd_start,
 );
 
 my @saved_argv = @ARGV;
@@ -237,6 +239,31 @@ sub require_slot_config {
     }
 }
 
+sub masterpidfile {
+    my ($slot) = @_;
+
+    return "$SLOT_PATH/$slot/var/run/cyrus-master.pid";
+}
+
+sub find_binary {
+    my ($slot, $name) = @_;
+
+    foreach (qw( bin sbin libexec libexec/cyrus-imapd lib cyrus/bin )) {
+        my $dir = "$SLOT_PATH/$slot/usr/cyrus/$_";
+
+        if (opendir my $dh, $dir) {
+            if (grep { $_ eq $name } readdir $dh) {
+                closedir $dh;
+                return "$dir/$name";
+            }
+
+            closedir $dh;
+        }
+    }
+
+    die "couldn't find binary: $name\n";
+}
+
 ############################################
 
 sub cmd_init {
@@ -331,4 +358,27 @@ sub cmd_fullbuild {
     cmd_configure($command, $slot, $force);
     cmd_build($command, $slot, $force);
     cmd_check($command, $slot, $force);
+}
+
+sub cmd_start {
+    my ($command, $slot, $force) = @_;
+
+    require_slot($slot);
+
+    my $masterpidfile = masterpidfile $slot;
+
+    if (-e $masterpidfile) {
+	my $pid = do {
+	    local $/ = undef;
+	    open my $fh, '<', $masterpidfile or die "$masterpidfile: $!";
+	    <$fh>;
+	};
+	chomp $pid;
+
+	die "pid file exists ($pid). already running?\n";
+    }
+
+    my $master = find_binary($slot, 'master');
+
+    print "sudo $master -p $masterpidfile &\n";
 }
