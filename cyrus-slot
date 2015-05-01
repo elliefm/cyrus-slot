@@ -210,13 +210,17 @@ sub require_slot {
 
     # check that the slot exists
     if (not -d "$SLOT_PATH/$slot") {
-	die "slot not initialised";
+	die "slot not initialised\n";
     }
+}
+
+sub require_slot_config {
+    my ($slot) = @_;
 
     # check that source dir is configured for the correct slot
     if (newer_file(".slot", "Makefile", "configure") ne ".slot") {
 	# missing or stale .slot file
-	die "not configured for this slot";
+	die "not configured for this slot\n";
     }
 
     my $dot_slot = do {
@@ -228,7 +232,7 @@ sub require_slot {
 
     if ($dot_slot ne $slot) {
 	# wrong .slot file
-	die "configured for wrong slot ($dot_slot)";
+	die "configured for wrong slot ($dot_slot)\n";
     }
 }
 
@@ -297,7 +301,7 @@ sub cmd_configure {
 sub cmd_build {
     my ($command, $slot, $force) = @_;
 
-    require_slot($slot);
+    require_slot_config($slot);
     run qw( make lex-fix );
     run qw( make -j 16 );
 }
@@ -305,7 +309,7 @@ sub cmd_build {
 sub cmd_check {
     my ($command, $slot, $force) = @_;
 
-    require_slot($slot);
+    require_slot_config($slot);
     run qw( make check );
 }
 
@@ -313,5 +317,6 @@ sub cmd_install {
     my ($command, $slot, $force) = @_;
 
     require_slot($slot);
+    require_slot_config($slot);
     run qw( make install );
 }
