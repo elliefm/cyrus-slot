@@ -24,6 +24,7 @@ my %CMD_REFS = (
     'configure' => \&cmd_configure,
     'build' => \&cmd_build,
     'check' => \&cmd_check,
+    'install' => \&cmd_install,
 );
 
 my @saved_argv = @ARGV;
@@ -72,7 +73,7 @@ foreach my $slot (@slots) {
 	};
 
 	if ($@) {
-	    print STDERR "$command slot $slot: $@\n";
+	    print STDERR "error: $command slot $slot: $@\n";
 	}
     }
 }
@@ -204,6 +205,33 @@ sub newer_file {
     return $newest_file;
 }
 
+sub require_slot {
+    my ($slot) = @_;
+
+    # check that the slot exists
+    if (not -d "$SLOT_PATH/$slot") {
+	die "slot not initialised";
+    }
+
+    # check that source dir is configured for the correct slot
+    if (newer_file(".slot", "Makefile", "configure") ne ".slot") {
+	# missing or stale .slot file
+	die "not configured for this slot";
+    }
+
+    my $dot_slot = do {
+	local $/ = undef;
+	open my $f, '<', '.slot' or die ".slot: $!";
+	<$f>;
+    };
+    chomp $dot_slot;
+
+    if ($dot_slot ne $slot) {
+	# wrong .slot file
+	die "configured for wrong slot ($dot_slot)";
+    }
+}
+
 ############################################
 
 sub cmd_init {
@@ -269,24 +297,7 @@ sub cmd_configure {
 sub cmd_build {
     my ($command, $slot, $force) = @_;
 
-    # check that we're configured for the correct slot
-    if (newer_file(".slot", "Makefile", "configure") ne ".slot") {
-	# missing or stale .slot file
-	die "not configured for this slot";
-    }
-
-    my $dot_slot = do {
-	local $/ = undef;
-	open my $f, '<', '.slot' or die ".slot: $!";
-	<$f>;
-    };
-    chomp $dot_slot;
-
-    if ($dot_slot ne $slot) {
-	# wrong .slot file
-	die "configured for wrong slot ($slot)";
-    }
-
+    require_slot($slot);
     run qw( make lex-fix );
     run qw( make -j 16 );
 }
@@ -294,5 +305,13 @@ sub cmd_build {
 sub cmd_check {
     my ($command, $slot, $force) = @_;
 
+    require_slot($slot);
     run qw( make check );
+}
+
+sub cmd_install {
+    my ($command, $slot, $force) = @_;
+
+    require_slot($slot);
+    run qw( make install );
 }
