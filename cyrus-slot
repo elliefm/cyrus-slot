@@ -65,7 +65,14 @@ foreach my $slot (@slots) {
     $g_current_slot = $slot;
     foreach my $command (@commands) {
 	my $force = $command =~ m/^force-/;
-	$CMD_REFS{$command}->($command, $slot, $force);
+
+	eval {
+	    $CMD_REFS{$command}->($command, $slot, $force);
+	};
+
+	if ($@) {
+	    print STDERR "$command slot $slot: $@\n";
+	}
     }
 }
 
@@ -155,17 +162,15 @@ sub install_defaults_cb {
 	$dir = "$SLOT_PATH/$g_current_slot/$dir";
 
 	if (not -d $dir and not mkdir $dir, 0770) {
-	    print STDERR "error: unable to create directory $dir: $!\n";
-	    return;
+	    die "$dir: $!";
 	}
     }
     else {
 	my $file = substr $File::Find::name, 1 + length $SLOT_DEFAULTS;
 	$file = "$SLOT_PATH/$g_current_slot/$file";
 
-	# FIXME some sort of error reporting
-	open my $in, '<', $File::Find::name;
-	open my $out, '>', $file;
+	open my $in, '<', $File::Find::name or die "$File::Find::name: $!";
+	open my $out, '>', $file or die "$file: $!";
 
 	while (<$in>) {
 	    s/%SLOT_PATH%/$SLOT_PATH/g;
@@ -205,13 +210,11 @@ sub cmd_init {
 
     if (-d "$SLOT_PATH/$slot") {
 	if (not $force) {
-	    print STDERR "error: $command slot $slot: already initialised\n";
-	    return;
+	    die "already initialised";
 	}
     }
     elsif (not mkdir "$SLOT_PATH/$slot", 0770) {
-	print STDERR "error: $command slot $slot failed: $!\n";
-	return;
+	die "mkdir failed: $!";
     }
 
     if (-d "$SLOT_DEFAULTS") {
@@ -227,8 +230,7 @@ sub cmd_configure {
 	or not -e 'configure.ac'
 	or not -e 'Makefile.am'
     ) {
-	print STDERR "error: $command: current directory doesn't look like a cyrus source tree\n";
-	return;
+	die "current directory doesn't look like a cyrus source tree";
     }
     
     # if configure doesn't exist or is older than configure.ac, autoreconf
@@ -269,8 +271,7 @@ sub cmd_build {
     # check that we're configured for the correct slot
     if (newer_file(".slot", "Makefile", "configure") ne ".slot") {
 	# missing or stale .slot file
-	print STDERR "error: $command slot $slot: not configured for this slot\n";
-	return;
+	die "not configured for this slot";
     }
 
     my $dot_slot = do {
@@ -282,8 +283,7 @@ sub cmd_build {
 
     if ($dot_slot ne $slot) {
 	# wrong .slot file
-	print STDERR "error: $command slot $slot: configured for wrong slot\n";
-	return;
+	die "configured for wrong slot ($slot)";
     }
 
     run qw( make lex-fix );
