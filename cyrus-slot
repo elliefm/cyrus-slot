@@ -177,8 +177,7 @@ sub install_defaults_cb {
 	open my $out, '>', $file or die "$file: $!";
 
 	while (<$in>) {
-	    s/%SLOT_PATH%/$SLOT_PATH/g;
-	    s/%SLOT%/$g_current_slot/g;
+	    s{$SLOT_DEFAULTS/}{$SLOT_PATH/$g_current_slot/}g;
 	    print $out $_;
 	}
 
