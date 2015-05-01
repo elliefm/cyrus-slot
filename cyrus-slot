@@ -29,6 +29,7 @@ my %CMD_REFS = (
     'fullbuild' => \&cmd_fullbuild,
 
     'start' => \&cmd_start,
+    'stop' => \&cmd_stop,
 );
 
 my @saved_argv = @ARGV;
@@ -381,4 +382,51 @@ sub cmd_start {
     my $master = find_binary($slot, 'master');
 
     print "sudo $master -p $masterpidfile &\n";
+}
+
+sub cmd_stop {
+    my ($command, $slot, $force) = @_;
+
+    require_slot($slot);
+
+    my $masterpidfile = masterpidfile $slot;
+
+    if (not -e $masterpidfile) {
+	die "not running\n";
+    }
+
+    my $pid = do {
+	local $/ = undef;
+	open my $fh, '<', $masterpidfile or die "$masterpidfile: $!";
+	<$fh>;
+    };
+
+    chomp $pid;
+
+    die "invalid pid file: $masterpidfile\n" if not $pid or $pid < 0;
+
+    print STDERR "trying nice shutdown...\n";
+
+    kill 'QUIT', $pid;
+    foreach my $sec (0..10) {
+	if (kill 0, $pid) {
+	    print STDERR "still alive after $sec seconds...\n";
+	    sleep 1;
+	}
+	else {
+	    last;
+	}
+    }
+    if (kill 0, $pid) {
+	print STDERR "killing hard...\n";
+	kill 'TERM', $pid;
+    }
+
+    if (kill 0, $pid) {
+	die "unable to kill $pid even with sigterm??";
+    }
+
+    print STDERR "done\n";
+
+    unlink $masterpidfile or die "unlink $masterpidfile: $!";
 }
