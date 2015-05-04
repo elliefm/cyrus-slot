@@ -4,6 +4,7 @@ use warnings;
 use strict;
 
 use Cwd;
+use Data::Dumper;
 use File::Find;
 use File::Path;
 use IPC::System::Simple qw(run);
@@ -11,6 +12,7 @@ use List::MoreUtils qw(uniq);
 use POSIX ();
 
 sub usage;
+sub slots_from_fs;
 sub slots_from_string;
 sub become_cyrus;
 
@@ -99,8 +101,20 @@ JHLBGK
     return $code;
 }
 
+sub slots_from_fs {
+    opendir my $dh, $SLOT_PATH or die "$SLOT_PATH: $!";
+
+    my @slots = grep { -d "$SLOT_PATH/$_" and m/^\d+$/ } readdir $dh;
+
+    closedir $dh;
+
+    return sort @slots;
+}
+
 sub slots_from_string {
     my ($slot_str) = @_;
+
+    return slots_from_fs if $slot_str eq '-a';
 
     return if $slot_str !~ m/^[\d,-]+$/;
 
