@@ -155,17 +155,19 @@ sub become_cyrus {
     my ($zero, @args) = @_;
 
     my $cyrus = 'cyrus';
-    my $pw = getpwnam $cyrus or die "no user named '$cyrus'\n";
+
+    my (undef, undef, $pw_uid, $pw_gid) = getpwnam $cyrus
+	or die "no user named '$cyrus'\n";
 
     my $uid = POSIX::getuid();
 
-    return if ($uid == $pw); # already cyrus user
+    return if ($uid == $pw_uid); # already cyrus user
 
     if ($uid == 0) {
-        setgid($pw->gid)
-            or die "cannot setgid to group $pw->gid: $!";
-        setuid($pw->uid)
-            or die "cannot setuid to group $pw->uid: $!";
+        POSIX::setgid($pw_gid)
+            or die "cannot setgid to group $pw_gid: $!";
+        POSIX::setuid($pw_uid)
+            or die "cannot setuid to group $pw_uid: $!";
     }
     else {
         my @cmd = ( 'sudo', '-u', $cyrus, $zero, @args );
