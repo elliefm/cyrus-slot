@@ -9,6 +9,7 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 use Slot;
+use Slot::Command;
 
 sub usage;
 sub cmd_start;
@@ -26,7 +27,7 @@ exit usage if scalar @ARGV;
 
 foreach my $slot (@slots) {
     eval {
-	cmd_start("start", $slot);
+	Slot::Command::start("start", $slot, 0);
     };
 
     if ($@) {
@@ -48,31 +49,4 @@ usage: $0 slots
 JHLBGK
 
     return $code;
-}
-
-#######################################################
-
-sub cmd_start {
-    my ($command, $slot) = @_;
-
-    die "not initialised\n" if not -d Slot::slot_dir($slot);
-
-    my $pidfile = Slot::slot_pidfile($slot);
-
-    if (-e $pidfile) {
-	my $pid = do {
-	    local $/ = undef;
-	    open my $fh, '<', $pidfile or die "$pidfile: $!";
-	    <$fh>;
-	};
-	chomp $pid;
-
-	die "pid file exists ($pid). already running?\n";
-    }
-
-    my $master = Slot::slot_binary($slot, 'master');
-
-    run $master, '-d', '-p', $pidfile;
-
-    print STDERR "slot $slot started\n";
 }

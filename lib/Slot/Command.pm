@@ -12,7 +12,7 @@ use lib "$FindBin::RealBin/../lib";
 use Slot;
 
 sub start {
-    my ($command, $slot) = @_;
+    my ($command, $slot, $force) = @_;
 
     die "not initialised\n" if not -d Slot::slot_dir($slot);
 
