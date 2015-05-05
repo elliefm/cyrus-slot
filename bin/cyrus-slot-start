@@ -10,11 +10,19 @@ use lib "$FindBin::RealBin/../lib";
 
 use Slot;
 
+sub usage;
 sub cmd_start;
 
 # FIXME whinge about not being root
 
-my @slots = Slot::slots_from_string(@ARGV);
+my $slot_spec = shift @ARGV;
+my @slots = ($slot_spec eq '-a'
+    ? Slot::slots()
+    : Slot::slots_from_string($slot_spec)
+);
+exit usage if not scalar @slots;
+
+exit usage if scalar @ARGV;
 
 foreach my $slot (@slots) {
     eval {
@@ -27,6 +35,20 @@ foreach my $slot (@slots) {
 }
 
 exit 0;
+
+#######################################################
+
+sub usage {
+    my ($code) = @_;
+    $code = $code || 1;
+
+    print STDERR << "JHLBGK";
+usage: $0 slots
+
+JHLBGK
+
+    return $code;
+}
 
 #######################################################
 
