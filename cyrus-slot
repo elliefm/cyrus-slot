@@ -133,9 +133,11 @@ sub install_defaults_cb {
     # skip the entry for the SLOT_DEFAULTS directory itself
     return if $File::Find::name eq $SLOT_DEFAULTS;
 
+    my $slot_dir = Slot::slot_dir($g_current_slot);
+
     if (-d $File::Find::name) {
 	my $dir = substr $File::Find::name, 1 + length $SLOT_DEFAULTS;
-	$dir = "$SLOT_PATH/$g_current_slot/$dir";
+	$dir = "$slot_dir/$dir";
 
 	if (not -d $dir and not mkdir $dir, 0770) {
 	    die "$dir: $!";
@@ -143,13 +145,13 @@ sub install_defaults_cb {
     }
     else {
 	my $file = substr $File::Find::name, 1 + length $SLOT_DEFAULTS;
-	$file = "$SLOT_PATH/$g_current_slot/$file";
+	$file = "$slot_dir/$file";
 
 	open my $in, '<', $File::Find::name or die "$File::Find::name: $!";
 	open my $out, '>', $file or die "$file: $!";
 
 	while (<$in>) {
-	    s{$SLOT_DEFAULTS/}{$SLOT_PATH/$g_current_slot/}g;
+	    s{$SLOT_DEFAULTS/}{$slot_dir/}g;
 	    print $out $_;
 	}
 
@@ -182,7 +184,7 @@ sub require_slot {
     my ($slot) = @_;
 
     # check that the slot exists
-    if (not -d "$SLOT_PATH/$slot") {
+    if (not -d Slot::slot_dir($slot)) {
 	die "slot not initialised\n";
     }
 }
@@ -239,12 +241,14 @@ sub find_binary {
 sub cmd_init {
     my ($command, $slot, $force) = @_;
 
-    if (-d "$SLOT_PATH/$slot") {
+    my $slot_dir = Slot::slot_dir($slot);
+
+    if (-d $slot_dir) {
 	if (not $force) {
 	    die "already initialised\n";
 	}
     }
-    elsif (not mkdir "$SLOT_PATH/$slot", 0770) {
+    elsif (not mkdir $slot_dir, 0770) {
 	die "mkdir failed: $!";
     }
 
@@ -284,10 +288,12 @@ sub cmd_configure {
 	--enable-idled
     );
 
+    my $slot_dir = Slot::slot_dir($slot);
+
     run "./configure",
 	"CFLAGS=$cflags",
-	"--prefix=$SLOT_PATH/$slot/usr/cyrus",
-	"--sysconfdir=$SLOT_PATH/$slot/etc",
+	"--prefix=$slot_dir/usr/cyrus",
+	"--sysconfdir=$slot_dir/etc",
 	@configure_args;
 
     # update .slot file
