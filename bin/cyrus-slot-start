@@ -6,7 +6,7 @@ use strict;
 use IPC::System::Simple qw(run);
 
 use FindBin;
-use lib "$FindBin::RealBin/lib";
+use lib "$FindBin::RealBin/../lib";
 
 use Slot;
 

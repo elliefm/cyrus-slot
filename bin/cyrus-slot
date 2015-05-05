@@ -12,7 +12,7 @@ use List::MoreUtils qw(uniq);
 use POSIX ();
 
 use FindBin;
-use lib "$FindBin::RealBin/lib";
+use lib "$FindBin::RealBin/../lib";
 
 use Slot;
 
@@ -27,7 +27,7 @@ my %CMD_REFS = (
     'build' => \&cmd_build,
     'check' => \&cmd_check,
     'install' => \&cmd_install,
-    
+
     'fullbuild' => \&cmd_fullbuild,
 
     'start' => \&cmd_start,
@@ -247,7 +247,7 @@ sub cmd_configure {
     ) {
 	die "current directory doesn't look like a cyrus source tree\n";
     }
-    
+
     # if configure doesn't exist or is older than configure.ac, autoreconf
     if ("configure.ac" eq newer_file "configure", "configure.ac") {
 	print STDERR "configure doesn't exist or is stale, rebuilding\n";
