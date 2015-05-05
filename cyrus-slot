@@ -211,12 +211,6 @@ sub require_slot_config {
     }
 }
 
-sub masterpidfile {
-    my ($slot) = @_;
-
-    return "$SLOT_PATH/$slot/var/run/cyrus-master.pid";
-}
-
 ############################################
 
 sub cmd_init {
@@ -322,12 +316,12 @@ sub cmd_start {
 
     require_slot($slot);
 
-    my $masterpidfile = masterpidfile $slot;
+    my $pidfile = Slot::slot_pidfile($slot);
 
-    if (-e $masterpidfile) {
+    if (-e $pidfile) {
 	my $pid = do {
 	    local $/ = undef;
-	    open my $fh, '<', $masterpidfile or die "$masterpidfile: $!";
+	    open my $fh, '<', $pidfile or die "$pidfile: $!";
 	    <$fh>;
 	};
 	chomp $pid;
@@ -337,7 +331,7 @@ sub cmd_start {
 
     my $master = Slot::slot_binary($slot, 'master');
 
-    print "sudo $master -d -p $masterpidfile\n";
+    print "sudo $master -d -p $pidfile\n";
 }
 
 sub cmd_stop {
@@ -345,21 +339,21 @@ sub cmd_stop {
 
     require_slot($slot);
 
-    my $masterpidfile = masterpidfile $slot;
+    my $pidfile = Slot::slot_pidfile($slot);
 
-    if (not -e $masterpidfile) {
+    if (not -e $pidfile) {
 	die "not running\n";
     }
 
     my $pid = do {
 	local $/ = undef;
-	open my $fh, '<', $masterpidfile or die "$masterpidfile: $!";
+	open my $fh, '<', $pidfile or die "$pidfile: $!";
 	<$fh>;
     };
 
     chomp $pid;
 
-    die "invalid pid file: $masterpidfile\n" if not $pid or $pid < 0;
+    die "invalid pid file: $pidfile\n" if not $pid or $pid < 0;
 
     print STDERR "trying nice shutdown...\n";
 
@@ -384,5 +378,5 @@ sub cmd_stop {
 
     print STDERR "done\n";
 
-    unlink $masterpidfile or die "unlink $masterpidfile: $!";
+    unlink $pidfile or die "unlink $pidfile: $!";
 }
