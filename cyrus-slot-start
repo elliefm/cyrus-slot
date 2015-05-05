@@ -3,8 +3,10 @@
 use warnings;
 use strict;
 
+use IPC::System::Simple qw(run);
+
 use FindBin;
-use lib "$FindBin::Bin/lib";
+use lib "$FindBin::RealBin/lib";
 
 use Slot;
 
@@ -13,8 +15,6 @@ sub cmd_start;
 # FIXME whinge about not being root
 
 my @slots = Slot::slots_from_string(@ARGV);
-
-print STDERR "found slots: ", join(', ', @slots), "\n";
 
 foreach my $slot (@slots) {
     eval {
@@ -50,5 +50,7 @@ sub cmd_start {
 
     my $master = Slot::slot_binary($slot, 'master');
 
-    print "sudo $master -d -p $pidfile\n";
+    run $master, '-d', '-p', $pidfile;
+
+    print STDERR "slot $slot started\n";
 }
