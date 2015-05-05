@@ -8,7 +8,6 @@ use Data::Dumper;
 use File::Find;
 use File::Path;
 use IPC::System::Simple qw(run);
-use List::MoreUtils qw(uniq);
 use POSIX ();
 
 use FindBin;
