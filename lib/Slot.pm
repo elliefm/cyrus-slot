@@ -1,21 +1,18 @@
 package Slot;
+use base qw(Exporter);
 
 use strict;
 use warnings;
 
-use Exporter;
 use List::MoreUtils qw(uniq);
 
-use vars qw(@EXPORT_OK);
-
-@EXPORT_OK = qw(
-    slot_basedir
-    slot_defaults
+our @EXPORT_OK = qw(
     slot_dir
     slot_pidfile
     slot_binary
     slots_from_string
 );
+our %EXPORT_TAGS = ( all => \@EXPORT_OK );
 
 sub slot_basedir {
     # FIXME don't hardcode this
