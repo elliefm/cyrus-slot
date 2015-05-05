@@ -11,9 +11,12 @@ use IPC::System::Simple qw(run);
 use List::MoreUtils qw(uniq);
 use POSIX ();
 
+use FindBin;
+use lib "$FindBin::RealBin/lib";
+
+use Slot;
+
 sub usage;
-sub slots_from_fs;
-sub slots_from_string;
 sub become_cyrus;
 
 my $SLOT_PATH = '/cyrus/slot';
@@ -37,7 +40,7 @@ my %CMD_REFS = (
 my @saved_argv = @ARGV;
 
 # check for valid slots
-my @slots = slots_from_string(shift @ARGV);
+my @slots = Slot::slots_from_string(shift @ARGV);
 exit usage if not scalar @slots;
 
 # check for valid commands
@@ -99,56 +102,6 @@ usage: $0 slots command [command ...]
 JHLBGK
 
     return $code;
-}
-
-sub slots_from_fs {
-    opendir my $dh, $SLOT_PATH or die "$SLOT_PATH: $!";
-
-    my @slots = grep { -d "$SLOT_PATH/$_" and m/^\d+$/ } readdir $dh;
-
-    closedir $dh;
-
-    return sort @slots;
-}
-
-sub slots_from_string {
-    my ($slot_str) = @_;
-
-    return slots_from_fs if $slot_str eq '-a';
-
-    return if $slot_str !~ m/^[\d,-]+$/;
-
-    my @ranges = split /\,/, $slot_str;
-    return if not scalar @ranges;
-
-    my @slots;
-
-    foreach my $range (@ranges) {
-	my ($start, $end, $junk) = split /-/, $range;
-
-	if (defined $junk) {
-	    print STDERR "invalid range: $range\n";
-	    return;
-	}
-	elsif (not $start) {
-	    print STDERR "invalid range: $range\n";
-	    return;
-	}
-	elsif (not $end) {
-	    push @slots, $start;
-	}
-	else {
-	    if ($start < $end) {
-		push @slots, $start .. $end;
-	    }
-	    else {
-		print STDERR "invalid range: $range\n";
-		return;
-	    }
-	}
-    }
-
-    return sort uniq @slots;
 }
 
 sub become_cyrus {
