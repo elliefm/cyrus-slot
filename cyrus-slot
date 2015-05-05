@@ -19,8 +19,8 @@ use Slot;
 sub usage;
 sub become_cyrus;
 
+# FIXME get rid of this
 my $SLOT_PATH = '/cyrus/slot';
-my $SLOT_DEFAULTS = "$SLOT_PATH/defaults";
 
 my %CMD_REFS = (
     'init' => \&cmd_init,
@@ -134,13 +134,15 @@ sub become_cyrus {
 }
 
 sub install_defaults_cb {
-    # skip the entry for the SLOT_DEFAULTS directory itself
-    return if $File::Find::name eq $SLOT_DEFAULTS;
+    my $slot_defaults = Slot::slot_defaults();
+
+    # skip the entry for the slot_defaults directory itself
+    return if $File::Find::name eq $slot_defaults;
 
     my $slot_dir = Slot::slot_dir($g_current_slot);
 
     if (-d $File::Find::name) {
-	my $dir = substr $File::Find::name, 1 + length $SLOT_DEFAULTS;
+	my $dir = substr $File::Find::name, 1 + length $slot_defaults;
 	$dir = "$slot_dir/$dir";
 
 	if (not -d $dir and not mkdir $dir, 0770) {
@@ -148,14 +150,14 @@ sub install_defaults_cb {
 	}
     }
     else {
-	my $file = substr $File::Find::name, 1 + length $SLOT_DEFAULTS;
+	my $file = substr $File::Find::name, 1 + length $slot_defaults;
 	$file = "$slot_dir/$file";
 
 	open my $in, '<', $File::Find::name or die "$File::Find::name: $!";
 	open my $out, '>', $file or die "$file: $!";
 
 	while (<$in>) {
-	    s{$SLOT_DEFAULTS/}{$slot_dir/}g;
+	    s{$slot_defaults/}{$slot_dir/}g;
 	    print $out $_;
 	}
 
@@ -220,6 +222,7 @@ sub require_slot_config {
 sub cmd_init {
     my ($command, $slot, $force) = @_;
 
+    my $slot_defaults = Slot::slot_defaults();
     my $slot_dir = Slot::slot_dir($slot);
 
     if (-d $slot_dir) {
@@ -231,8 +234,8 @@ sub cmd_init {
 	die "mkdir failed: $!";
     }
 
-    if (-d "$SLOT_DEFAULTS") {
-	find(\&install_defaults_cb, $SLOT_DEFAULTS);
+    if (-d $slot_defaults) {
+	find(\&install_defaults_cb, $slot_defaults);
     }
 }
 
