@@ -360,12 +360,12 @@ sub cmd_stop {
 
     die "invalid pid file: $pidfile\n" if not $pid or $pid < 0;
 
-    print STDERR "trying nice shutdown...\n";
+    print STDERR "slot $slot: trying nice shutdown...\n";
 
     kill 'QUIT', $pid;
     foreach my $sec (0..10) {
 	if (kill 0, $pid) {
-	    print STDERR "still alive after $sec seconds...\n";
+	    print STDERR "slot $slot: still alive after $sec seconds...\n";
 	    sleep 1;
 	}
 	else {
@@ -373,7 +373,7 @@ sub cmd_stop {
 	}
     }
     if (kill 0, $pid) {
-	print STDERR "killing hard...\n";
+	print STDERR "slot $slot: killing hard...\n";
 	kill 'TERM', $pid;
     }
 
@@ -381,7 +381,7 @@ sub cmd_stop {
 	die "unable to kill $pid even with sigterm??";
     }
 
-    print STDERR "done\n";
+    print "slot $slot stopped\n";
 
     unlink $pidfile or die "unlink $pidfile: $!";
 }
