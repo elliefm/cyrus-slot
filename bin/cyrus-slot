@@ -14,6 +14,7 @@ use FindBin;
 use lib "$FindBin::RealBin/../lib";
 
 use Slot;
+use Slot::Command;
 
 sub usage;
 sub become_cyrus;
@@ -29,7 +30,7 @@ my %CMD_REFS = (
 
     'fullbuild' => \&cmd_fullbuild,
 
-    'start' => \&cmd_start,
+    'start' => \&Slot::Command::start,
     'stop' => \&cmd_stop,
 );
 
@@ -313,29 +314,6 @@ sub cmd_fullbuild {
     cmd_configure($command, $slot, $force);
     cmd_build($command, $slot, $force);
     cmd_check($command, $slot, $force);
-}
-
-sub cmd_start {
-    my ($command, $slot, $force) = @_;
-
-    require_slot($slot);
-
-    my $pidfile = Slot::slot_pidfile($slot);
-
-    if (-e $pidfile) {
-	my $pid = do {
-	    local $/ = undef;
-	    open my $fh, '<', $pidfile or die "$pidfile: $!";
-	    <$fh>;
-	};
-	chomp $pid;
-
-	die "pid file exists ($pid). already running?\n";
-    }
-
-    my $master = Slot::slot_binary($slot, 'master');
-
-    print "sudo $master -d -p $pidfile\n";
 }
 
 sub cmd_stop {
