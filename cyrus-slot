@@ -217,25 +217,6 @@ sub masterpidfile {
     return "$SLOT_PATH/$slot/var/run/cyrus-master.pid";
 }
 
-sub find_binary {
-    my ($slot, $name) = @_;
-
-    foreach (qw( bin sbin libexec libexec/cyrus-imapd lib cyrus/bin )) {
-        my $dir = "$SLOT_PATH/$slot/usr/cyrus/$_";
-
-        if (opendir my $dh, $dir) {
-            if (grep { $_ eq $name } readdir $dh) {
-                closedir $dh;
-                return "$dir/$name";
-            }
-
-            closedir $dh;
-        }
-    }
-
-    die "couldn't find binary: $name\n";
-}
-
 ############################################
 
 sub cmd_init {
@@ -354,9 +335,9 @@ sub cmd_start {
 	die "pid file exists ($pid). already running?\n";
     }
 
-    my $master = find_binary($slot, 'master');
+    my $master = Slot::slot_binary($slot, 'master');
 
-    print "sudo $master -p $masterpidfile &\n";
+    print "sudo $master -d -p $masterpidfile\n";
 }
 
 sub cmd_stop {
