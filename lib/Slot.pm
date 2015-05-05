@@ -10,6 +10,7 @@ our @EXPORT_OK = qw(
     slot_dir
     slot_pidfile
     slot_binary
+    slots
     slots_from_string
 );
 our %EXPORT_TAGS = ( all => \@EXPORT_OK );
@@ -57,7 +58,7 @@ sub slot_binary {
     die "couldn't find binary: $name\n";
 }
 
-sub slots_from_fs {
+sub slots {
     my $slot_basedir = slot_basedir;
     opendir my $dh, $slot_basedir or die "$slot_basedir: $!";
 
@@ -70,8 +71,6 @@ sub slots_from_fs {
 
 sub slots_from_string {
     my ($slot_str) = @_;
-
-    return slots_from_fs if $slot_str eq '-a';
 
     return if $slot_str !~ m/^[\d,-]+$/;
 

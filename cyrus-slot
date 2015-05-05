@@ -40,7 +40,11 @@ my %CMD_REFS = (
 my @saved_argv = @ARGV;
 
 # check for valid slots
-my @slots = Slot::slots_from_string(shift @ARGV);
+my $slot_spec = shift @ARGV;
+my @slots = ($slot_spec eq '-a'
+    ? Slot::slots()
+    : Slot::slots_from_string($slot_spec)
+);
 exit usage if not scalar @slots;
 
 # check for valid commands
