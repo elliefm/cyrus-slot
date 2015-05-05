@@ -12,7 +12,9 @@ use vars qw(@EXPORT_OK);
     slot_basedir
     slot_defaults
     slot_dir
-    slots
+    slot_pidfile
+    slot_binary
+    slots_from_string
 );
 
 sub slot_basedir {
@@ -31,6 +33,31 @@ sub slot_dir {
     # FIXME check if valid slot
 
     return slot_basedir . '/' . $slot;
+}
+
+sub slot_pidfile {
+    my ($slot) = @_;
+
+    return slot_dir($slot) . "/var/run/cyrus-master.pid";
+}
+
+sub slot_binary {
+    my ($slot, $name) = @_;
+
+    foreach (qw( bin sbin libexec libexec/cyrus-imapd lib cyrus/bin )) {
+        my $dir = slot_dir($slot) . "/usr/cyrus/$_";
+
+        if (opendir my $dh, $dir) {
+            if (grep { $_ eq $name } readdir $dh) {
+                closedir $dh;
+                return "$dir/$name";
+            }
+
+            closedir $dh;
+        }
+    }
+
+    die "couldn't find binary: $name\n";
 }
 
 sub slots_from_fs {

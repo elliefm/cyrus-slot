@@ -3,3 +3,52 @@
 use warnings;
 use strict;
 
+use FindBin;
+use lib "$FindBin::Bin/lib";
+
+use Slot;
+
+sub cmd_start;
+
+# FIXME whinge about not being root
+
+my @slots = Slot::slots_from_string(@ARGV);
+
+print STDERR "found slots: ", join(', ', @slots), "\n";
+
+foreach my $slot (@slots) {
+    eval {
+	cmd_start("start", $slot);
+    };
+
+    if ($@) {
+	print STDERR "error: start slot $slot: $@\n";
+    }
+}
+
+exit 0;
+
+#######################################################
+
+sub cmd_start {
+    my ($command, $slot) = @_;
+
+    die "not initialised\n" if not -d Slot::slot_dir($slot);
+
+    my $pidfile = Slot::slot_pidfile($slot);
+
+    if (-e $pidfile) {
+	my $pid = do {
+	    local $/ = undef;
+	    open my $fh, '<', $pidfile or die "$pidfile: $!";
+	    <$fh>;
+	};
+	chomp $pid;
+
+	die "pid file exists ($pid). already running?\n";
+    }
+
+    my $master = Slot::slot_binary($slot, 'master');
+
+    print "sudo $master -d -p $pidfile\n";
+}
