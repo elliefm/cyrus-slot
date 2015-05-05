@@ -19,9 +19,6 @@ use Slot;
 sub usage;
 sub become_cyrus;
 
-# FIXME get rid of this
-my $SLOT_PATH = '/cyrus/slot';
-
 my %CMD_REFS = (
     'init' => \&cmd_init,
     'force-init' => \&cmd_init,
@@ -67,12 +64,13 @@ if (@bad_commands) {
 # become cyrus user
 become_cyrus($0, @saved_argv);
 
-# check that slot path exists and is valid
-die "not a directory: '$SLOT_PATH'\n" if not -d $SLOT_PATH;
-die "directory not readable: '$SLOT_PATH'\n" if not -r $SLOT_PATH;
-die "directory not writeable: '$SLOT_PATH'\n" if not -w $SLOT_PATH;
-die "directory not executable: '$SLOT_PATH'\n" if not -x $SLOT_PATH;
-die "directory not owned by cyrus: '$SLOT_PATH'\n" if not -o $SLOT_PATH;
+# check that slot basedir exists and is valid
+my $slot_basedir = Slot::slot_basedir();
+die "not a directory: '$slot_basedir'\n" if not -d $slot_basedir;
+die "directory not readable: '$slot_basedir'\n" if not -r $slot_basedir;
+die "directory not writeable: '$slot_basedir'\n" if not -w $slot_basedir;
+die "directory not executable: '$slot_basedir'\n" if not -x $slot_basedir;
+die "directory not owned by cyrus: '$slot_basedir'\n" if not -o $slot_basedir;
 
 # run commands
 my $g_current_slot;
