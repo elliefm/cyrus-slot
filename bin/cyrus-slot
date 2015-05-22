@@ -258,7 +258,6 @@ sub cmd_configure {
     my $cflags = '-g -O0 -Wall -Wextra -Werror';
     my @configure_args = qw(
 	--enable-silent-rules
-	--enable-coverage
 	--enable-http
 	--enable-unit-tests
 	--enable-replication
