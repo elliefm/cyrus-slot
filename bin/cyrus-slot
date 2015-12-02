@@ -36,28 +36,15 @@ my %CMD_REFS = (
 
 my @saved_argv = @ARGV;
 
-# check for valid slots
-my $slot_spec = shift @ARGV;
-my @slots = ($slot_spec eq '-a'
-    ? Slot::slots()
-    : Slot::slots_from_string($slot_spec)
-);
-exit usage if not scalar @slots;
+# parse arguments
+my ($slot, $command) = @ARGV;
+exit usage if not $slot or not $command;
 
-# check for valid commands
-my @commands = @ARGV;
-exit usage if not scalar @commands;
+# slot might validly not exist yet, so don't try to validate it too deeply
 
-my @bad_commands = grep {
-    not exists $CMD_REFS{$_};
-} @commands;
-
-if (@bad_commands) {
-    print STDERR 'error: unrecognised command';
-    print STDERR 's' if scalar @bad_commands > 1;
-    print STDERR ': ', join(', ', @bad_commands);
-    print STDERR "\n";
-
+# validate command
+if (not exists $CMD_REFS{$command}) {
+    print STDERR "error: unrecognised command: $command\n";
     exit usage;
 }
 
@@ -72,22 +59,17 @@ die "directory not writeable: '$slot_basedir'\n" if not -w $slot_basedir;
 die "directory not executable: '$slot_basedir'\n" if not -x $slot_basedir;
 die "directory not owned by cyrus: '$slot_basedir'\n" if not -o $slot_basedir;
 
-# run commands
-my $g_current_slot;
+# run command
+my $g_current_slot = $slot;
+my $force = $command =~ m/^force-/;
 
-foreach my $slot (@slots) {
-    $g_current_slot = $slot;
-    foreach my $command (@commands) {
-        my $force = $command =~ m/^force-/;
+eval {
+    $CMD_REFS{$command}->($command, $slot, $force);
+};
 
-        eval {
-            $CMD_REFS{$command}->($command, $slot, $force);
-        };
-
-        if ($@) {
-            print STDERR "error: $command slot $slot: $@\n";
-        }
-    }
+if ($@) {
+    print STDERR "error: $command slot $slot: $@\n";
+    exit 1;
 }
 
 exit 0;
@@ -99,7 +81,7 @@ sub usage {
     $code = $code || 1;
 
     print STDERR << "JHLBGK";
-usage: $0 slots command [command ...]
+usage: $0 slot command
 
 JHLBGK
 
