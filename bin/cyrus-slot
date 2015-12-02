@@ -175,8 +175,27 @@ sub require_slot {
     }
 }
 
+sub require_cyrus_source {
+    if (getcwd !~ m/cyrus-imapd$/
+        or not -e 'configure.ac'
+        or not -e 'Makefile.am'
+    ) {
+        die "current directory doesn't look like a cyrus source tree\n";
+    }
+
+    return if not -d '.git';
+
+    my $git_status = qx{git status --porcelain};
+    return if not $git_status and not $?;
+
+    die "current directory contains uncommitted changes "
+        . "(please commit or stash or reset)\n";
+}
+
 sub require_slot_config {
     my ($slot) = @_;
+
+    require_cyrus_source($slot);
 
     # check that source dir is configured for the correct slot
     if (newer_file(".slot", "Makefile", "configure") ne ".slot") {
@@ -196,6 +215,7 @@ sub require_slot_config {
         die "configured for wrong slot ($dot_slot)\n";
     }
 }
+
 
 ############################################
 
@@ -222,13 +242,7 @@ sub cmd_init {
 sub cmd_configure {
     my ($command, $slot, $force) = @_;
 
-    # sanity check
-    if (getcwd !~ m/cyrus-imapd$/
-        or not -e 'configure.ac'
-        or not -e 'Makefile.am'
-    ) {
-        die "current directory doesn't look like a cyrus source tree\n";
-    }
+    require_cyrus_source($slot);
 
     # if configure doesn't exist or is older than configure.ac, autoreconf
     if ("configure.ac" eq newer_file "configure", "configure.ac") {
