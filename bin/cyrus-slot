@@ -78,15 +78,15 @@ my $g_current_slot;
 foreach my $slot (@slots) {
     $g_current_slot = $slot;
     foreach my $command (@commands) {
-	my $force = $command =~ m/^force-/;
+        my $force = $command =~ m/^force-/;
 
-	eval {
-	    $CMD_REFS{$command}->($command, $slot, $force);
-	};
+        eval {
+            $CMD_REFS{$command}->($command, $slot, $force);
+        };
 
-	if ($@) {
-	    print STDERR "error: $command slot $slot: $@\n";
-	}
+        if ($@) {
+            print STDERR "error: $command slot $slot: $@\n";
+        }
     }
 }
 
@@ -112,7 +112,7 @@ sub become_cyrus {
     my $cyrus = 'cyrus';
 
     my (undef, undef, $pw_uid, $pw_gid) = getpwnam $cyrus
-	or die "no user named '$cyrus'\n";
+        or die "no user named '$cyrus'\n";
 
     my $uid = POSIX::getuid();
 
@@ -127,7 +127,7 @@ sub become_cyrus {
     else {
         my @cmd = ( 'sudo', '-u', $cyrus, $zero, @args );
         exec {'sudo'} @cmd;
-	die "sudo -u $cyrus failed: $?";
+        die "sudo -u $cyrus failed: $?";
     }
 }
 
@@ -140,27 +140,27 @@ sub install_defaults_cb {
     my $slot_dir = Slot::slot_dir($g_current_slot);
 
     if (-d $File::Find::name) {
-	my $dir = substr $File::Find::name, 1 + length $slot_defaults;
-	$dir = "$slot_dir/$dir";
+        my $dir = substr $File::Find::name, 1 + length $slot_defaults;
+        $dir = "$slot_dir/$dir";
 
-	if (not -d $dir and not mkdir $dir, 0770) {
-	    die "$dir: $!";
-	}
+        if (not -d $dir and not mkdir $dir, 0770) {
+            die "$dir: $!";
+        }
     }
     else {
-	my $file = substr $File::Find::name, 1 + length $slot_defaults;
-	$file = "$slot_dir/$file";
+        my $file = substr $File::Find::name, 1 + length $slot_defaults;
+        $file = "$slot_dir/$file";
 
-	open my $in, '<', $File::Find::name or die "$File::Find::name: $!";
-	open my $out, '>', $file or die "$file: $!";
+        open my $in, '<', $File::Find::name or die "$File::Find::name: $!";
+        open my $out, '>', $file or die "$file: $!";
 
-	while (<$in>) {
-	    s{$slot_defaults/}{$slot_dir/}g;
-	    print $out $_;
-	}
+        while (<$in>) {
+            s{$slot_defaults/}{$slot_dir/}g;
+            print $out $_;
+        }
 
-	close $out;
-	close $in;
+        close $out;
+        close $in;
     }
 }
 
@@ -171,14 +171,14 @@ sub newer_file {
     my $newest_file;
 
     foreach my $file (@files) {
-	next if not -e $file;
+        next if not -e $file;
 
-	my $mtime = (stat($file))[9];
+        my $mtime = (stat($file))[9];
 
-	if ($mtime > $newest_mtime) {
-	    $newest_mtime = $mtime;
-	    $newest_file = $file;
-	}
+        if ($mtime > $newest_mtime) {
+            $newest_mtime = $mtime;
+            $newest_file = $file;
+        }
     }
 
     return $newest_file;
@@ -189,7 +189,7 @@ sub require_slot {
 
     # check that the slot exists
     if (not -d Slot::slot_dir($slot)) {
-	die "slot not initialised\n";
+        die "slot not initialised\n";
     }
 }
 
@@ -198,20 +198,20 @@ sub require_slot_config {
 
     # check that source dir is configured for the correct slot
     if (newer_file(".slot", "Makefile", "configure") ne ".slot") {
-	# missing or stale .slot file
-	die "not configured for this slot\n";
+        # missing or stale .slot file
+        die "not configured for this slot\n";
     }
 
     my $dot_slot = do {
-	local $/ = undef;
-	open my $f, '<', '.slot' or die ".slot: $!";
-	<$f>;
+        local $/ = undef;
+        open my $f, '<', '.slot' or die ".slot: $!";
+        <$f>;
     };
     chomp $dot_slot;
 
     if ($dot_slot ne $slot) {
-	# wrong .slot file
-	die "configured for wrong slot ($dot_slot)\n";
+        # wrong .slot file
+        die "configured for wrong slot ($dot_slot)\n";
     }
 }
 
@@ -224,16 +224,16 @@ sub cmd_init {
     my $slot_dir = Slot::slot_dir($slot);
 
     if (-d $slot_dir) {
-	if (not $force) {
-	    die "already initialised\n";
-	}
+        if (not $force) {
+            die "already initialised\n";
+        }
     }
     elsif (not mkdir $slot_dir, 0770) {
-	die "mkdir failed: $!";
+        die "mkdir failed: $!";
     }
 
     if (-d $slot_defaults) {
-	find(\&install_defaults_cb, $slot_defaults);
+        find(\&install_defaults_cb, $slot_defaults);
     }
 }
 
@@ -242,38 +242,38 @@ sub cmd_configure {
 
     # sanity check
     if (getcwd !~ m/cyrus-imapd$/
-	or not -e 'configure.ac'
-	or not -e 'Makefile.am'
+        or not -e 'configure.ac'
+        or not -e 'Makefile.am'
     ) {
-	die "current directory doesn't look like a cyrus source tree\n";
+        die "current directory doesn't look like a cyrus source tree\n";
     }
 
     # if configure doesn't exist or is older than configure.ac, autoreconf
     if ("configure.ac" eq newer_file "configure", "configure.ac") {
-	print STDERR "configure doesn't exist or is stale, rebuilding\n";
-	run qw( autoreconf -i -s );
+        print STDERR "configure doesn't exist or is stale, rebuilding\n";
+        run qw( autoreconf -i -s );
     }
 
     # run configure
     my $cflags = '-g -O0 -Wall -Wextra -Werror';
     my @configure_args = qw(
-	--enable-silent-rules
-	--enable-http
-	--enable-unit-tests
-	--enable-replication
-	--with-openssl=yes
-	--enable-nntp
-	--enable-murder
-	--enable-idled
+        --enable-silent-rules
+        --enable-http
+        --enable-unit-tests
+        --enable-replication
+        --with-openssl=yes
+        --enable-nntp
+        --enable-murder
+        --enable-idled
     );
 
     my $slot_dir = Slot::slot_dir($slot);
 
     run "./configure",
-	"CFLAGS=$cflags",
-	"--prefix=$slot_dir/usr/cyrus",
-	"--sysconfdir=$slot_dir/etc",
-	@configure_args;
+        "CFLAGS=$cflags",
+        "--prefix=$slot_dir/usr/cyrus",
+        "--sysconfdir=$slot_dir/etc",
+        @configure_args;
 
     # update .slot file
     open my $f, '>', '.slot';
@@ -323,13 +323,13 @@ sub cmd_stop {
     my $pidfile = Slot::slot_pidfile($slot);
 
     if (not -e $pidfile) {
-	die "not running\n";
+        die "not running\n";
     }
 
     my $pid = do {
-	local $/ = undef;
-	open my $fh, '<', $pidfile or die "$pidfile: $!";
-	<$fh>;
+        local $/ = undef;
+        open my $fh, '<', $pidfile or die "$pidfile: $!";
+        <$fh>;
     };
 
     chomp $pid;
@@ -340,21 +340,21 @@ sub cmd_stop {
 
     kill 'QUIT', $pid;
     foreach my $sec (0..10) {
-	if (kill 0, $pid) {
-	    print STDERR "slot $slot: still alive after $sec seconds...\n";
-	    sleep 1;
-	}
-	else {
-	    last;
-	}
+        if (kill 0, $pid) {
+            print STDERR "slot $slot: still alive after $sec seconds...\n";
+            sleep 1;
+        }
+        else {
+            last;
+        }
     }
     if (kill 0, $pid) {
-	print STDERR "slot $slot: killing hard...\n";
-	kill 'TERM', $pid;
+        print STDERR "slot $slot: killing hard...\n";
+        kill 'TERM', $pid;
     }
 
     if (kill 0, $pid) {
-	die "unable to kill $pid even with sigterm??";
+        die "unable to kill $pid even with sigterm??";
     }
 
     print "slot $slot stopped\n";

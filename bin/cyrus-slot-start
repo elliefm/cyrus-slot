@@ -27,11 +27,11 @@ exit usage if scalar @ARGV;
 
 foreach my $slot (@slots) {
     eval {
-	Slot::Command::start("start", $slot, 0);
+        Slot::Command::start("start", $slot, 0);
     };
 
     if ($@) {
-	print STDERR "error: start slot $slot: $@\n";
+        print STDERR "error: start slot $slot: $@\n";
     }
 }
 

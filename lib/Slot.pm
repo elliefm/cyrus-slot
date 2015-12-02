@@ -80,28 +80,28 @@ sub slots_from_string {
     my @slots;
 
     foreach my $range (@ranges) {
-	my ($start, $end, $junk) = split /-/, $range;
+        my ($start, $end, $junk) = split /-/, $range;
 
-	if (defined $junk) {
-	    print STDERR "invalid range: $range\n";
-	    return;
-	}
-	elsif (not $start) {
-	    print STDERR "invalid range: $range\n";
-	    return;
-	}
-	elsif (not $end) {
-	    push @slots, $start;
-	}
-	else {
-	    if ($start < $end) {
-		push @slots, $start .. $end;
-	    }
-	    else {
-		print STDERR "invalid range: $range\n";
-		return;
-	    }
-	}
+        if (defined $junk) {
+            print STDERR "invalid range: $range\n";
+            return;
+        }
+        elsif (not $start) {
+            print STDERR "invalid range: $range\n";
+            return;
+        }
+        elsif (not $end) {
+            push @slots, $start;
+        }
+        else {
+            if ($start < $end) {
+                push @slots, $start .. $end;
+            }
+            else {
+                print STDERR "invalid range: $range\n";
+                return;
+            }
+        }
     }
 
     return sort { $a <=> $b } uniq @slots;
