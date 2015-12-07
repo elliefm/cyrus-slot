@@ -17,7 +17,7 @@ use Slot;
 use Slot::Command;
 
 sub usage;
-sub become_cyrus;
+sub run_as_cyrus;
 
 my %CMD_REFS = (
     'init' => \&cmd_init,
@@ -49,15 +49,15 @@ if (not exists $CMD_REFS{$command}) {
 }
 
 # become cyrus user
-become_cyrus($0, @saved_argv);
+#become_cyrus($0, @saved_argv);
 
 # check that slot basedir exists and is valid
 my $slot_basedir = Slot::slot_basedir();
 die "not a directory: '$slot_basedir'\n" if not -d $slot_basedir;
 die "directory not readable: '$slot_basedir'\n" if not -r $slot_basedir;
-die "directory not writeable: '$slot_basedir'\n" if not -w $slot_basedir;
+#die "directory not writeable: '$slot_basedir'\n" if not -w $slot_basedir;
 die "directory not executable: '$slot_basedir'\n" if not -x $slot_basedir;
-die "directory not owned by cyrus: '$slot_basedir'\n" if not -o $slot_basedir;
+#die "directory not owned by cyrus: '$slot_basedir'\n" if not -o $slot_basedir;
 
 # run command
 my $g_current_slot = $slot;
@@ -111,6 +111,10 @@ sub become_cyrus {
         exec {'sudo'} @cmd;
         die "sudo -u $cyrus failed: $?";
     }
+}
+
+sub run_as_cyrus {
+    run qw( sudo -u cyrus ), @_;
 }
 
 sub install_defaults_cb {
@@ -296,7 +300,7 @@ sub cmd_install {
 
     require_slot($slot);
     require_build_dir($slot);
-    run qw( make install );
+    run_as_cyrus qw( make install );
 }
 
 sub cmd_fullbuild {

@@ -38,7 +38,7 @@ sub slot_build_dir {
 
     # FIXME check if valid slot
 
-    return slot_basedir . '/.build/' . $slot;
+    return  '.slot/' . $slot;
 }
 
 sub slot_pidfile {
