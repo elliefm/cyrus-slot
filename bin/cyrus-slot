@@ -6,7 +6,7 @@ use strict;
 use Cwd;
 use Data::Dumper;
 use File::Find;
-use File::Path;
+use File::Path qw(mkpath);
 use IPC::System::Simple qw(run);
 use POSIX ();
 
@@ -192,27 +192,17 @@ sub require_cyrus_source {
         . "(please commit or stash or reset)\n";
 }
 
-sub require_slot_config {
+sub require_build_dir {
     my ($slot) = @_;
 
-    require_cyrus_source($slot);
+    my $build_dir = Slot::slot_build_dir($slot);
 
-    # check that source dir is configured for the correct slot
-    if (newer_file(".slot", "Makefile", "configure") ne ".slot") {
-        # missing or stale .slot file
+    if (not -d $build_dir) {
         die "not configured for this slot\n";
     }
 
-    my $dot_slot = do {
-        local $/ = undef;
-        open my $f, '<', '.slot' or die ".slot: $!";
-        <$f>;
-    };
-    chomp $dot_slot;
-
-    if ($dot_slot ne $slot) {
-        # wrong .slot file
-        die "configured for wrong slot ($dot_slot)\n";
+    if (not chdir $build_dir) {
+        die "chdir failed: $!";
     }
 }
 
@@ -250,6 +240,17 @@ sub cmd_configure {
         run qw( autoreconf -i -s );
     }
 
+    my $source_dir = getcwd;
+    my $build_dir = Slot::slot_build_dir($slot);
+
+    if (not -d $build_dir) {
+        mkpath $build_dir, 0, 0770;
+    }
+
+    if (not chdir $build_dir) {
+        die "chdir failed: $!";
+    }
+
     # run configure
     my $cflags = '-g -O0 -Wall -Wextra -Werror';
     my @configure_args = qw(
@@ -261,34 +262,32 @@ sub cmd_configure {
         --enable-nntp
         --enable-murder
         --enable-idled
+        --enable-event-notification
+        --enable-sieve
+        --enable-autocreate
     );
 
     my $slot_dir = Slot::slot_dir($slot);
 
-    run "./configure",
+    run "$source_dir/configure",
         "CFLAGS=$cflags",
         "--prefix=$slot_dir/usr/cyrus",
         "--sysconfdir=$slot_dir/etc",
         @configure_args;
-
-    # update .slot file
-    open my $f, '>', '.slot';
-    print $f "$slot\n";
-    close $f;
 }
 
 sub cmd_build {
     my ($command, $slot, $force) = @_;
 
-    require_slot_config($slot);
+    require_build_dir($slot);
     run qw( make lex-fix );
-    run qw( make -j 16 );
+    run qw( make -j 4 );
 }
 
 sub cmd_check {
     my ($command, $slot, $force) = @_;
 
-    require_slot_config($slot);
+    require_build_dir($slot);
     run qw( make check );
 }
 
@@ -296,7 +295,7 @@ sub cmd_install {
     my ($command, $slot, $force) = @_;
 
     require_slot($slot);
-    require_slot_config($slot);
+    require_build_dir($slot);
     run qw( make install );
 }
 

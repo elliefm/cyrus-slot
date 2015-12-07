@@ -33,6 +33,14 @@ sub slot_dir {
     return slot_basedir . '/' . $slot;
 }
 
+sub slot_build_dir {
+    my ($slot) = @_;
+
+    # FIXME check if valid slot
+
+    return slot_basedir . '/.build/' . $slot;
+}
+
 sub slot_pidfile {
     my ($slot) = @_;
 
